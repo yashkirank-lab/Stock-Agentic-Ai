@@ -95,7 +95,7 @@ export default function StockChart({ symbol }: ChartProps) {
                 onClick={() => setShowKeyEvents(!showKeyEvents)}
                 className={cn("w-8 h-4 rounded-full relative transition-colors duration-200", showKeyEvents ? "bg-[#00BD84]" : "bg-[#2A2E35]")}
               >
-                 <div className={cn("w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all duration-200", showKeyEvents ? "left-4.5" : "left-0.5")} />
+                 <div className={cn("w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all duration-200", showKeyEvents ? "left-[18px]" : "left-0.5")} />
               </button>
               <span className="text-[12px] font-bold text-white">Key Events</span>
            </div>
@@ -202,6 +202,33 @@ export default function StockChart({ symbol }: ChartProps) {
                 animationDuration={1500}
                 activeDot={{ r: 4, fill: isUp ? "#00BD84" : "#FF333A", stroke: 'white', strokeWidth: 2 }}
               />
+
+              {/* Simulated Key Events */}
+              {showKeyEvents && data && data.length > 0 && (
+                [
+                  data[Math.floor(data.length * 0.2)],
+                  data[Math.floor(data.length * 0.5)],
+                  data[Math.floor(data.length * 0.8)]
+                ].map((event, i) => (
+                  <Area
+                    key={`event-${i}`}
+                    type="monotone"
+                    data={[event]}
+                    dataKey="close"
+                    stroke="none"
+                    fill="none"
+                    label={(props: any) => {
+                      const { x, y } = props;
+                      return (
+                        <g transform={`translate(${x},${y - 15})`}>
+                          <circle r="4" fill="#00BD84" stroke="white" strokeWidth="1" />
+                          <text x="8" y="4" fill="white" fontSize="9" fontWeight="900" style={{ textShadow: '0 0 10px rgba(0,0,0,0.8)' }}>AI EVENT</text>
+                        </g>
+                      );
+                    }}
+                  />
+                ))
+              )}
             </AreaChart>
           ) : (
             <BarChart data={data} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>

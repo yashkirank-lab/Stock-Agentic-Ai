@@ -45,11 +45,50 @@ body {
   @apply bg-[#2A2E35] rounded-full hover:bg-[#3A3F4B];
 }
 
-.no-scrollbar::-webkit-scrollbar {
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
-.no-scrollbar {
+.no-scrollbar,
+.scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.article-content h1, .article-content h2, .article-content h3 {
+  color: white !important;
+  font-weight: 800 !important;
+  margin-top: 2.5rem !important;
+  margin-bottom: 1.25rem !important;
+}
+
+.article-content h1 { font-size: 2.25rem !important; }
+.article-content h2 { font-size: 1.75rem !important; }
+.article-content h3 { font-size: 1.5rem !important; }
+
+.article-content p {
+  margin-bottom: 1.75rem !important;
+  line-height: 1.8 !important;
+}
+
+.article-content a {
+  color: #00BD84 !important;
+  text-decoration: underline !important;
+}
+
+.article-content img {
+  border-radius: 1rem !important;
+  margin: 3rem 0 !important;
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+.article-content ul, .article-content ol {
+  margin-bottom: 2rem !important;
+  padding-left: 1.5rem !important;
+}
+
+.article-content li {
+  margin-bottom: 0.75rem !important;
 }
 

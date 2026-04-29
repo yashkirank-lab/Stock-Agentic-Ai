@@ -24,12 +24,23 @@ interface Notification {
   read: boolean;
 }
 
+interface Settings {
+  notifications: {
+    priceChanges: boolean;
+    earnings: boolean;
+    breakingNews: boolean;
+    ratingChanges: boolean;
+  };
+  dataSourceStatus: Record<string, 'ACTIVE' | 'STANDBY' | 'SYNCING'>;
+}
+
 interface AppState {
   selectedSymbol: string | null;
   watchlist: string[];
   chatHistory: Message[];
   isChatLoading: boolean;
   notifications: Notification[];
+  settings: Settings;
   
   setSelectedSymbol: (symbol: string) => void;
   addToWatchlist: (symbol: string) => void;
@@ -41,6 +52,8 @@ interface AppState {
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
   markNotificationRead: (id: string) => void;
   clearNotifications: () => void;
+  updateSetting: (key: keyof Settings['notifications']) => void;
+  syncDataSource: (source: string) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -55,6 +68,20 @@ export const useStore = create<AppState>((set) => ({
   ],
   isChatLoading: false,
   notifications: [],
+  settings: {
+    notifications: {
+      priceChanges: true,
+      earnings: true,
+      breakingNews: false,
+      ratingChanges: true,
+    },
+    dataSourceStatus: {
+      'Yahoo Finance API': 'ACTIVE',
+      'SEC EDGAR Feed': 'ACTIVE',
+      'Twitter Sentiment Engine': 'STANDBY',
+      'Neural Strategy Engine': 'ACTIVE',
+    }
+  },
 
   setSelectedSymbol: (symbol) => set({ selectedSymbol: symbol.toUpperCase() }),
   
@@ -104,5 +131,40 @@ export const useStore = create<AppState>((set) => ({
     notifications: state.notifications.map(n => n.id === id ? { ...n, read: true } : n)
   })),
 
-  clearNotifications: () => set({ notifications: [] })
+  clearNotifications: () => set({ notifications: [] }),
+
+  updateSetting: (key) => set((state) => ({
+    settings: {
+      ...state.settings,
+      notifications: {
+        ...state.settings.notifications,
+        [key]: !state.settings.notifications[key]
+      }
+    }
+  })),
+
+  syncDataSource: (source) => {
+    set((state) => ({
+      settings: {
+        ...state.settings,
+        dataSourceStatus: {
+          ...state.settings.dataSourceStatus,
+          [source]: 'SYNCING'
+        }
+      }
+    }));
+    
+    // Simulate sync completion
+    setTimeout(() => {
+      set((state) => ({
+        settings: {
+          ...state.settings,
+          dataSourceStatus: {
+            ...state.settings.dataSourceStatus,
+            [source]: 'ACTIVE'
+          }
+        }
+      }));
+    }, 2000);
+  }
 }));

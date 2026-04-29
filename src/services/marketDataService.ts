@@ -91,6 +91,46 @@ export class MarketDataService {
     }
   }
 
+  static async getTrendingMarketNews(limit: number = 20, category: string = 'Top Stories') {
+    try {
+      // Map display filters to search queries
+      const queryMap: Record<string, string> = {
+        'Top Stories': 'market',
+        'Technology': 'technology companies',
+        'Macro': 'federal reserve economy',
+        'Crypto': 'bitcoin cryptocurrency'
+      };
+
+      const query = queryMap[category] || 'market';
+      const results = await yahooFinance.search(query, { newsCount: limit });
+
+      const seenTitles = new Set();
+      const allNews = (results.news || []).filter(n => {
+        if (seenTitles.has(n.title)) return false;
+        seenTitles.add(n.title);
+        return true;
+      });
+
+      return allNews.sort((a, b) => {
+        const timeA = a.providerPublishTime instanceof Date ? a.providerPublishTime.getTime() : 0;
+        const timeB = b.providerPublishTime instanceof Date ? b.providerPublishTime.getTime() : 0;
+        return timeB - timeA;
+      }).map(n => ({
+        title: n.title,
+        source: n.publisher,
+        url: n.link,
+        thumbnail: n.thumbnail?.resolutions?.[0]?.url || null,
+        publishedAt: n.providerPublishTime instanceof Date 
+          ? n.providerPublishTime.toISOString() 
+          : new Date().toISOString(),
+        summary: (n as any).summary || ""
+      }));
+    } catch (error) {
+      console.error("Error fetching trending news:", error);
+      return [];
+    }
+  }
+
   static async searchSymbols(query: string) {
     try {
       const result = await yahooFinance.search(query);
