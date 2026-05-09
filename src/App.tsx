@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2026 Yash Killamsetty
+ * All rights reserved.
+ * Unauthorized copying, modification, or distribution of this
+ * software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Dashboard from './components/Dashboard';
 import Chat from './components/Chat';

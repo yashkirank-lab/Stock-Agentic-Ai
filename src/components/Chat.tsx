@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2026 Yash Killamsetty
+ * All rights reserved.
+ * Unauthorized copying, modification, or distribution of this
+ * software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Send, Bot, User, Loader2, Trash2 } from 'lucide-react';

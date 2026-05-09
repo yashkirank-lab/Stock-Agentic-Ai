@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2026 Yash Killamsetty
+ * All rights reserved.
+ * Unauthorized copying, modification, or distribution of this
+ * software, via any medium, is strictly prohibited.
+ * Proprietary and confidential.
+ */
 import { GoogleGenAI } from "@google/genai";
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';

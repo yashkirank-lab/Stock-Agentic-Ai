@@ -1,5 +1,9 @@
 # APEX Broker — Institutional Grade Stock Intelligence
 
+> [!IMPORTANT]
+> **Copyright (c) 2026 Yash Killamsetty. All Rights Reserved.**
+> Unauthorized copying, modification, or distribution of this software is strictly prohibited. This project is proprietary and confidential.
+
 APEX Broker is a professional-grade agentic investment analysis platform. It combines real-time market data with advanced AI research capabilities to provide autonomous portfolio vetting and deep market oversight.
 
 ## 🚀 Key Features
