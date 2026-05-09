@@ -34,18 +34,38 @@ interface Settings {
   dataSourceStatus: Record<string, 'ACTIVE' | 'STANDBY' | 'SYNCING'>;
 }
 
+interface Space {
+  id: string;
+  name: string;
+  icon?: string;
+  watchlist: string[];
+  followedTopics: string[];
+  chatHistory: Message[];
+}
+
 interface AppState {
   selectedSymbol: string | null;
-  watchlist: string[];
-  chatHistory: Message[];
+  spaces: Space[];
+  activeSpaceId: string;
   isChatLoading: boolean;
   notifications: Notification[];
   settings: Settings;
   
+  // Space Management
+  createSpace: (name: string) => void;
+  deleteSpace: (id: string) => void;
+  switchSpace: (id: string) => void;
+  updateSpaceName: (id: string, name: string) => void;
+  
+  // Active Space Helpers (Getters)
+  getWatchlist: () => string[];
+  getFollowedTopics: () => string[];
+  getChatHistory: () => Message[];
+  getActiveSpace: () => Space;
+
   setSelectedSymbol: (symbol: string) => void;
-  addToWatchlist: (symbol: string) => void;
-  removeFromWatchlist: (symbol: string) => void;
   toggleWatchlist: (symbol: string) => void;
+  toggleFollowTopic: (topic: string) => void;
   addMessage: (message: Message) => void;
   clearChat: () => void;
   setChatLoading: (loading: boolean) => void;
@@ -56,16 +76,26 @@ interface AppState {
   syncDataSource: (source: string) => void;
 }
 
-export const useStore = create<AppState>((set) => ({
+const DEFAULT_SPACES: Space[] = [
+  {
+    id: 'space-prime',
+    name: 'Prime Vector',
+    watchlist: ['005930.KS', 'AAPL', 'NVDA', 'BTC-USD'],
+    followedTopics: ['FASHION', 'TESLA', 'AI'],
+    chatHistory: [
+      {
+        role: 'assistant',
+        content: 'Hello! I am APEX, your agentic AI investment analyst. How can I help you research the markets today?',
+        timestamp: new Date().toISOString()
+      }
+    ]
+  }
+];
+
+export const useStore = create<AppState>((set, get) => ({
   selectedSymbol: '005930.KS',
-  watchlist: ['005930.KS', 'AAPL', 'NVDA', 'BTC-USD'],
-  chatHistory: [
-    {
-      role: 'assistant',
-      content: 'Hello! I am APEX, your agentic AI investment analyst. How can I help you research the markets today?',
-      timestamp: new Date().toISOString()
-    }
-  ],
+  spaces: DEFAULT_SPACES,
+  activeSpaceId: 'space-prime',
   isChatLoading: false,
   notifications: [],
   settings: {
@@ -83,38 +113,103 @@ export const useStore = create<AppState>((set) => ({
     }
   },
 
+  // Space Management
+  createSpace: (name) => set((state) => {
+    const newSpace: Space = {
+      id: `space-${Math.random().toString(36).substring(7)}`,
+      name: name || `Secondary Vector ${state.spaces.length}`,
+      watchlist: [],
+      followedTopics: [],
+      chatHistory: [{
+        role: 'assistant',
+        content: `Intelligence Space "${name}" initialized. Awaiting commands.`,
+        timestamp: new Date().toISOString()
+      }]
+    };
+    return { 
+      spaces: [...state.spaces, newSpace],
+      activeSpaceId: newSpace.id
+    };
+  }),
+
+  deleteSpace: (id) => set((state) => {
+    if (state.spaces.length <= 1) return state;
+    const newSpaces = state.spaces.filter(s => s.id !== id);
+    const newActiveId = state.activeSpaceId === id ? newSpaces[0].id : state.activeSpaceId;
+    return { spaces: newSpaces, activeSpaceId: newActiveId };
+  }),
+
+  switchSpace: (id) => set({ activeSpaceId: id }),
+
+  updateSpaceName: (id, name) => set((state) => ({
+    spaces: state.spaces.map(s => s.id === id ? { ...s, name } : s)
+  })),
+
+  // Getters
+  getActiveSpace: () => {
+    const state = get();
+    return state.spaces.find(s => s.id === state.activeSpaceId) || state.spaces[0];
+  },
+  getWatchlist: () => get().getActiveSpace().watchlist,
+  getFollowedTopics: () => get().getActiveSpace().followedTopics,
+  getChatHistory: () => get().getActiveSpace().chatHistory,
+
   setSelectedSymbol: (symbol) => set({ selectedSymbol: symbol.toUpperCase() }),
   
-  addToWatchlist: (symbol) => set((state) => ({
-    watchlist: state.watchlist.includes(symbol.toUpperCase()) 
-      ? state.watchlist 
-      : [...state.watchlist, symbol.toUpperCase()]
-  })),
-
-  removeFromWatchlist: (symbol) => set((state) => ({
-    watchlist: state.watchlist.filter((s) => s !== symbol.toUpperCase())
-  })),
-
   toggleWatchlist: (symbol) => set((state) => {
     const s = symbol.toUpperCase();
     return {
-      watchlist: state.watchlist.includes(s)
-        ? state.watchlist.filter((item) => item !== s)
-        : [...state.watchlist, s]
+      spaces: state.spaces.map(space => 
+        space.id === state.activeSpaceId 
+          ? {
+              ...space,
+              watchlist: space.watchlist.includes(s)
+                ? space.watchlist.filter(item => item !== s)
+                : [...space.watchlist, s]
+            }
+          : space
+      )
+    };
+  }),
+
+  toggleFollowTopic: (topic) => set((state) => {
+    const t = topic.toUpperCase();
+    return {
+      spaces: state.spaces.map(space => 
+        space.id === state.activeSpaceId 
+          ? {
+              ...space,
+              followedTopics: space.followedTopics.includes(t)
+                ? space.followedTopics.filter(item => item !== t)
+                : [...space.followedTopics, t]
+            }
+          : space
+      )
     };
   }),
 
   addMessage: (msg) => set((state) => ({
-    chatHistory: [...state.chatHistory, msg]
+    spaces: state.spaces.map(space => 
+      space.id === state.activeSpaceId 
+        ? { ...space, chatHistory: [...space.chatHistory, msg] }
+        : space
+    )
   })),
 
-  clearChat: () => set({ 
-    chatHistory: [{
-      role: 'assistant',
-      content: 'Hello! I am APEX, your agentic AI investment analyst. How can I help you research the markets today?',
-      timestamp: new Date().toISOString()
-    }] 
-  }),
+  clearChat: () => set((state) => ({
+    spaces: state.spaces.map(space => 
+      space.id === state.activeSpaceId 
+        ? {
+            ...space,
+            chatHistory: [{
+              role: 'assistant',
+              content: 'Intelligence Buffer Purged. Awaiting new input.',
+              timestamp: new Date().toISOString()
+            }]
+          }
+        : space
+    )
+  })),
 
   setChatLoading: (loading) => set({ isChatLoading: loading }),
 

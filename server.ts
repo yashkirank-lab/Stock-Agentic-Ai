@@ -98,54 +98,14 @@ async function startServer() {
       const isHeaderOverflow = error.message.includes('Header overflow') || error.code === 'HPE_HEADER_OVERFLOW';
       const isAuthError = error.response?.status === 401 || error.response?.status === 403;
       
-      if (isHeaderOverflow || isAuthError) {
-        return res.json({
-          isRestricted: true,
-          errorType: isHeaderOverflow ? 'HEADER_OVERFLOW' : 'AUTH_RESTRICTED',
-          message: isHeaderOverflow 
-            ? "This publisher uses advanced technical headers that prevent direct extraction." 
-            : "This article is protected by a publisher paywall or authentication layer.",
-          url: url
-        });
-      }
-
-      res.status(500).json({ error: "Failed to extract article content. Please use the direct link." });
-    }
-  });
-
-  // AI Analysis Endpoint
-  app.post("/api/news/analyze", async (req, res) => {
-    const { title, excerpt, textContent } = req.body;
-    
-    if (!process.env.GEMINI_API_KEY) {
-      return res.status(500).json({ error: "AI service not configured" });
-    }
-
-    try {
-      const prompt = `Analyze this news article:
-      TITLE: ${title}
-      EXCERPT: ${excerpt}
-      CONTENT: ${textContent?.substring(0, 3000)}
-      
-      Return a JSON object with:
-      {
-        "summary": ["Highlight 1", "Highlight 2", "Highlight 3"],
-        "sentiment": "Positive" | "Negative" | "Neutral",
-        "keyPoints": ["Fact 1", "Fact 2"]
-      }`;
-
-      const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-        {
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { response_mime_type: "application/json" }
-        }
-      );
-
-      const result = JSON.parse(response.data.candidates[0].content.parts[0].text);
-      res.json(result);
-    } catch (error: any) {
-      res.status(500).json({ error: "Analysis failed" });
+      return res.json({
+        isRestricted: true,
+        errorType: isHeaderOverflow ? 'HEADER_OVERFLOW' : (isAuthError ? 'AUTH_RESTRICTED' : 'UNKNOWN'),
+        message: isHeaderOverflow 
+          ? "This publisher uses advanced technical headers that prevent direct extraction." 
+          : (isAuthError ? "This article is protected by a publisher paywall or authentication layer." : "This source terminal denied the handshake. Manual access required."),
+        url: url
+      });
     }
   });
 
@@ -234,9 +194,10 @@ app.get("/api/search", async (req, res) => {
 app.get("/api/news/trending", async (req, res) => {
   try {
     const category = req.query.category as string || 'Top Stories';
+    const q = req.query.q as string;
     // If user selects 'Research', we can return general market news or a specific set
     const searchCategory = category === 'Research' ? 'market analysis' : category;
-    const data = await MarketDataService.getTrendingMarketNews(20, searchCategory);
+    const data = await MarketDataService.getTrendingMarketNews(20, searchCategory, q);
     res.json(data);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

@@ -18,7 +18,8 @@ const queryClient = new QueryClient({
 
 export default function App() {
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const chatHistory = useStore(state => state.chatHistory);
+  const store = useStore();
+  const chatHistory = store.getChatHistory();
 
   useEffect(() => {
     // If the last message was a user message just added (likely from a dashboard button), open chat

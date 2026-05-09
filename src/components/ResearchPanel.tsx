@@ -11,7 +11,9 @@ interface ResearchProps {
 }
 
 export default function ResearchPanel({ symbol }: ResearchProps) {
-  const { watchlist, toggleWatchlist } = useStore();
+  const store = useStore();
+  const watchlist = store.getWatchlist();
+  const toggleWatchlist = store.toggleWatchlist;
   const isInWatchlist = watchlist.includes(symbol.toUpperCase());
 
   const { data, isLoading } = useQuery({

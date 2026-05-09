@@ -17,27 +17,31 @@ import { useState } from 'react';
 
 interface ChartProps {
   symbol: string;
+  timeframe?: string;
 }
 
-export default function StockChart({ symbol }: ChartProps) {
-  const [days, setDays] = useState(1);
+export default function StockChart({ symbol, timeframe = '1D' }: ChartProps) {
+  const [internalDays, setInternalDays] = useState<number | null>(null);
   const [showKeyEvents, setShowKeyEvents] = useState(true);
   const [chartType, setChartType] = useState<'mountain' | 'bar'>('mountain');
+
+  // Map timeframe labels to days
+  const daysMap: Record<string, number> = {
+    '1D': 1,
+    '5D': 5,
+    '1M': 30,
+    '6M': 180,
+    'YTD': 120,
+    '1Y': 365,
+    '5Y': 1825,
+    'ALL': 3650
+  };
+
+  const days = internalDays || daysMap[timeframe] || 1;
   
   const { data, isLoading } = useQuery({
     queryKey: ['history', symbol, days],
     queryFn: async () => {
-      // Map timeframe labels to days
-      const daysMap: Record<string, number> = {
-        '1D': 1,
-        '5D': 5,
-        '1M': 30,
-        '6M': 180,
-        'YTD': 120, // Simplified approximation
-        '1Y': 365,
-        '5Y': 1825,
-        'All': 3650
-      };
       const { data } = await axios.get(`/api/stocks/${symbol}/history?days=${days}`);
       return data;
     },
@@ -76,7 +80,7 @@ export default function StockChart({ symbol }: ChartProps) {
           ].map((t) => (
             <button
               key={t.label}
-              onClick={() => setDays(t.val)}
+              onClick={() => setInternalDays(t.val)}
               className={cn(
                 "px-3 py-1.5 rounded text-[11px] font-bold transition-all whitespace-nowrap",
                 days === t.val
@@ -124,68 +128,67 @@ export default function StockChart({ symbol }: ChartProps) {
       </div>
 
       {/* The Chart */}
-      <div className="h-[400px] w-full p-6 relative overflow-hidden">
+      <div className="h-[460px] w-full p-6 relative overflow-hidden bg-gradient-to-b from-[#121417] to-[#0C0D0F]">
         <div className="absolute left-6 right-6 top-6 bottom-6 flex flex-col justify-between opacity-10 pointer-events-none">
-          {[...Array(5)].map((_, i) => <div key={i} className="h-[1px] w-full bg-white border-t border-dashed border-white/20" />)}
+          {[...Array(8)].map((_, i) => <div key={i} className="h-[1px] w-full bg-[#9299A6] border-t border-dashed border-[#9299A6]/20" />)}
         </div>
         
-        {/* Baseline */}
-        <div className="absolute w-full h-[1px] border-t border-dashed border-[#FF333A]/40 top-[60%] left-0 z-0" />
+        {/* Baseline / Support Levels */}
+        <div className="absolute w-full h-[1px] border-t border-dashed border-[#FF333A]/20 top-[60%] left-0 z-0" />
+        <div className="absolute w-full h-[1px] border-t border-dashed border-[#00BD84]/10 top-[20%] left-0 z-0" />
 
         <ResponsiveContainer width="100%" height="100%">
           {chartType === 'mountain' ? (
-            <AreaChart data={data} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+            <AreaChart data={data} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="mountain" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={isUp ? "#00BD84" : "#FF333A"} stopOpacity={0.4}/>
                   <stop offset="95%" stopColor={isUp ? "#00BD84" : "#FF333A"} stopOpacity={0}/>
                 </linearGradient>
+                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
               </defs>
               <XAxis 
                 dataKey="time" 
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#9299A6', fontSize: 10, fontWeight: 600 }}
-                minTickGap={30}
+                tick={{ fill: '#4A4F59', fontSize: 9, fontWeight: 900 }}
+                minTickGap={40}
                 padding={{ left: 20, right: 20 }}
               />
               <YAxis 
                 orientation="right"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#9299A6', fontSize: 10, fontWeight: 600 }}
+                tick={{ fill: '#4A4F59', fontSize: 9, fontWeight: 900 }}
                 domain={['auto', 'auto']}
               />
               <Tooltip 
-                cursor={{ stroke: '#9299A6', strokeWidth: 1, strokeDasharray: '4 4' }}
+                cursor={{ stroke: '#00BD84', strokeWidth: 1, strokeDasharray: '4 4' }}
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     const d = payload[0].payload;
                     return (
-                      <div className="bg-[#121417]/95 border border-[#2A2E35] p-3 shadow-2xl backdrop-blur-md min-w-[160px] rounded">
-                        <div className="flex justify-between gap-4 mb-2">
-                          <span className="text-[10px] text-[#9299A6] font-bold">Date:</span>
-                          <span className="text-[10px] text-white font-mono font-bold">{d.date} {d.time}</span>
+                      <div className="bg-[#0C0D0F]/95 border border-[#00BD84]/30 p-4 shadow-[0_20px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl min-w-[200px] rounded-xl">
+                        <div className="flex items-center gap-2 mb-3 border-b border-[#2A2E35] pb-2">
+                           <Clock size={12} className="text-[#00BD84]" />
+                           <span className="text-[10px] text-white font-black uppercase tracking-[0.2em]">{d.date} • {d.time}</span>
                         </div>
-                        <div className="flex justify-between gap-4">
-                          <span className="text-[10px] text-[#9299A6] font-bold">Close:</span>
-                          <span className="text-[10px] text-white font-mono font-bold">{d.close.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                          <span className="text-[10px] text-[#9299A6] font-bold">Open:</span>
-                          <span className="text-[10px] text-white font-mono font-bold">{d.open.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                          <span className="text-[10px] text-[#9299A6] font-bold">High:</span>
-                          <span className="text-[10px] text-white font-mono font-bold">{d.high.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                          <span className="text-[10px] text-[#9299A6] font-bold">Low:</span>
-                          <span className="text-[10px] text-white font-mono font-bold">{d.low.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        </div>
-                        <div className="flex justify-between gap-4 mt-2 pt-2 border-t border-[#2A2E35]">
-                          <span className="text-[10px] text-[#9299A6] font-bold">Volume:</span>
-                          <span className="text-[10px] text-white font-mono font-bold">{d.volume.toLocaleString()}</span>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[9px] text-[#4A4F59] font-black uppercase tracking-widest">Close</span>
+                            <span className="text-[12px] text-white font-mono font-black italic">{d.close.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-[9px] text-[#4A4F59] font-black uppercase tracking-widest">High / Low</span>
+                            <span className="text-[10px] text-[#00BD84] font-mono font-bold">{d.high.toFixed(2)} / {d.low.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between items-center border-t border-[#2A2E35] pt-2 mt-2">
+                            <span className="text-[9px] text-[#4A4F59] font-black uppercase tracking-widest">Institutional Vol</span>
+                            <span className="text-[11px] text-white font-mono font-bold">{(d.volume / 1000000).toFixed(2)}M</span>
+                          </div>
                         </div>
                       </div>
                     );
@@ -197,18 +200,30 @@ export default function StockChart({ symbol }: ChartProps) {
                 type="monotone" 
                 dataKey="close" 
                 stroke={isUp ? "#00BD84" : "#FF333A"} 
-                strokeWidth={1.5}
+                strokeWidth={2}
                 fill="url(#mountain)"
-                animationDuration={1500}
-                activeDot={{ r: 4, fill: isUp ? "#00BD84" : "#FF333A", stroke: 'white', strokeWidth: 2 }}
+                animationDuration={2000}
+                activeDot={{ r: 6, fill: isUp ? "#00BD84" : "#FF333A", stroke: '#121417', strokeWidth: 3 }}
+                style={{ filter: 'url(#glow)' }}
+              />
+
+              {/* Simulated SMA/EMA Lines */}
+              <Area
+                type="monotone"
+                dataKey="close"
+                stroke="#3A3F4B"
+                strokeWidth={1}
+                strokeDasharray="5 5"
+                fill="none"
+                opacity={0.3}
               />
 
               {/* Simulated Key Events */}
               {showKeyEvents && data && data.length > 0 && (
                 [
-                  data[Math.floor(data.length * 0.2)],
-                  data[Math.floor(data.length * 0.5)],
-                  data[Math.floor(data.length * 0.8)]
+                  data[Math.floor(data.length * 0.15)],
+                  data[Math.floor(data.length * 0.45)],
+                  data[Math.floor(data.length * 0.75)]
                 ].map((event, i) => (
                   <Area
                     key={`event-${i}`}
@@ -220,9 +235,10 @@ export default function StockChart({ symbol }: ChartProps) {
                     label={(props: any) => {
                       const { x, y } = props;
                       return (
-                        <g transform={`translate(${x},${y - 15})`}>
-                          <circle r="4" fill="#00BD84" stroke="white" strokeWidth="1" />
-                          <text x="8" y="4" fill="white" fontSize="9" fontWeight="900" style={{ textShadow: '0 0 10px rgba(0,0,0,0.8)' }}>AI EVENT</text>
+                        <g transform={`translate(${x},${y - 25})`}>
+                          <rect x="-35" y="-14" width="70" height="18" rx="4" fill="#00BD84" style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.4))' }} />
+                          <text y="-2" textAnchor="middle" fill="black" fontSize="8" fontWeight="900" letterSpacing="1px">AI SIGNAL</text>
+                          <line x1="0" y1="4" x2="0" y2="25" stroke="#00BD84" strokeWidth="1" strokeDasharray="2 2" />
                         </g>
                       );
                     }}

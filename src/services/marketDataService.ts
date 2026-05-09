@@ -91,18 +91,49 @@ export class MarketDataService {
     }
   }
 
-  static async getTrendingMarketNews(limit: number = 20, category: string = 'Top Stories') {
+  static async getTrendingMarketNews(limit: number = 20, category: string = 'Top Stories', q?: string) {
     try {
-      // Map display filters to search queries
+      // Map display filters to search queries with broad but relevant keywords
       const queryMap: Record<string, string> = {
-        'Top Stories': 'market',
-        'Technology': 'technology companies',
-        'Macro': 'federal reserve economy',
-        'Crypto': 'bitcoin cryptocurrency'
+        'Markets': 'stock market economic news market analysis indices',
+        'Capital': 'venture capital private equity institutional investment debt equity',
+        'Tech': 'technology tech sector silicon valley big tech software semiconductors',
+        'Energy': 'energy sector oil gas renewables utilities climate energy news',
+        'Fashion': 'retail fashion brands apparel luxury goods consumer discretionary',
+        'Crypto': 'crypto news bitcoin ethereum blockchain digital assets regulation',
+        'AI': '"Anthropic Claude" OR "OpenAI" OR "ChatGPT" OR "Google Gemini" OR "DeepMind" OR "AI industry" OR "LLM" news',
+        'Tesla': 'Tesla Energy TSLA Elon Musk electric vehicles autonomous driving',
+        'Top Stories': 'major business market breaking news headlines world economy'
       };
 
-      const query = queryMap[category] || 'market';
-      const results = await yahooFinance.search(query, { newsCount: limit });
+      // Use the provided search query directly if available, otherwise fallback to category map
+      // For specific searches (q), we prioritize the raw search term for maximum accuracy
+      let finalQuery = q ? q : (queryMap[category] || 'stock market intel');
+
+      // Optimization: if it's a search, we want the most relevant results
+      const searchOptions = { newsCount: Math.max(limit, 100) }; 
+      let results = await yahooFinance.search(finalQuery, searchOptions);
+
+      // Recursive fallback logic for searches (including Following / Watchlist)
+      if (!results.news || results.news.length < 5) {
+        // Step 1: Try broadening the query if it was a search
+        if (q) {
+          const broadTerms = q.replace(/"/g, '').split(' OR ').join(' ');
+          const broadResults = await yahooFinance.search(`${broadTerms} market news`, searchOptions);
+          if (broadResults.news && broadResults.news.length > (results.news?.length || 0)) {
+            results = broadResults;
+          }
+        }
+        
+        // Step 2: Global fallback to Top Stories if still empty or very sparse
+        if (!results.news || results.news.length < 3) {
+          const topStories = await yahooFinance.search(queryMap['Top Stories'], searchOptions);
+          if (topStories.news && topStories.news.length > 0) {
+            // Mix in whatever results we HAD if any
+            results.news = [...(results.news || []), ...(topStories.news || [])];
+          }
+        }
+      }
 
       const seenTitles = new Set();
       const allNews = (results.news || []).filter(n => {

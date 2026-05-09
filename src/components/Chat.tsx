@@ -7,7 +7,9 @@ import { analyzeStockAgent } from '../services/aiService';
 import { cn } from '../lib/utils';
 
 export default function Chat() {
-  const { chatHistory, addMessage, isChatLoading, setChatLoading, clearChat } = useStore();
+  const store = useStore();
+  const chatHistory = store.getChatHistory();
+  const { addMessage, isChatLoading, setChatLoading, clearChat } = store;
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
